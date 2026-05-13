@@ -4,24 +4,37 @@ Local-first LLM classifier for fake review detection. Point it at a prompt
 file and a dataset, get per-row predictions back as a CSV.
 
 Designed to run on a workstation with no internet access. Default provider is
-Ollama. 
+Ollama.
 
-## Install
+## Getting started
 
 Requires Python 3.14 and [Poetry](https://python-poetry.org/).
 
-```
-poetry install
-```
+1. Install dependencies:
 
-## Dataset
+   ```
+   poetry install
+   ```
 
-Place `fake-reviews-dataset.csv` in `data/`. The repository does not
-redistribute the dataset. (Joni Salimen et al. data used - [See here](https://jonisalminen.com/fake-reviews-dataset-and-generation/).
+2. Download the dataset from https://osf.io/tyue9/files/3vds7 and place it at
+   `data/fake-reviews-dataset.csv`. The repository does not redistribute the
+   dataset.
 
-## Ackowledgements
+3. Run the tests to confirm everything is wired up:
 
-Kiitos to Joni Salminen et al for the foundational dataset.
+   ```
+   poetry run pytest
+   ```
+
+## What works so far
+
+- Dataset loader: reads the CSV into typed `Review` records, with optional
+  stratified sampling by label and a deterministic `--seed`.
+
+## Acknowledgements
+
+Kiitos to Joni Salminen et al. for the foundational dataset.
+See https://jonisalminen.com/fake-reviews-dataset-and-generation/.
 
 ## Licence
 

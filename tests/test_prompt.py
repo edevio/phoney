@@ -3,28 +3,34 @@ from pathlib import Path
 from fake_review_classifier.prompt import (
     HASH_LENGTH,
     load_prompt,
-    prompt_hash,
     result_path,
     sanitise_model,
 )
 
 
-def test_load_prompt_reads_file(tmp_path: Path) -> None:
-    path = tmp_path / "p.txt"
-    path.write_text("hello", encoding="utf-8")
-    assert load_prompt(path) == "hello"
+def _write(path: Path, text: str) -> Path:
+    path.write_text(text, encoding="utf-8")
+    return path
 
 
-def test_prompt_hash_is_stable() -> None:
-    assert prompt_hash("hello") == prompt_hash("hello")
+def test_load_prompt_returns_text_and_hash(tmp_path: Path) -> None:
+    path = _write(tmp_path / "p.txt", "hello")
+    text, digest = load_prompt(path)
+    assert text == "hello"
+    assert len(digest) == HASH_LENGTH
 
 
-def test_prompt_hash_is_short() -> None:
-    assert len(prompt_hash("hello")) == HASH_LENGTH
+def test_load_prompt_hash_is_stable(tmp_path: Path) -> None:
+    path = _write(tmp_path / "p.txt", "hello")
+    _, a = load_prompt(path)
+    _, b = load_prompt(path)
+    assert a == b
 
 
-def test_prompt_hash_changes_with_content() -> None:
-    assert prompt_hash("a") != prompt_hash("b")
+def test_load_prompt_hash_changes_with_content(tmp_path: Path) -> None:
+    _, a = load_prompt(_write(tmp_path / "a.txt", "one"))
+    _, b = load_prompt(_write(tmp_path / "b.txt", "two"))
+    assert a != b
 
 
 def test_sanitise_model_replaces_slash_and_colon() -> None:
@@ -33,14 +39,5 @@ def test_sanitise_model_replaces_slash_and_colon() -> None:
 
 
 def test_result_path_combines_model_and_hash(tmp_path: Path) -> None:
-    p = result_path("qwen3:14b", "hello", tmp_path)
-    assert p.parent == tmp_path
-    assert p.name.startswith("qwen3_14b_")
-    assert p.suffix == ".csv"
-    assert len(p.stem.split("_")[-1]) == HASH_LENGTH
-
-
-def test_result_path_changes_with_prompt(tmp_path: Path) -> None:
-    a = result_path("m", "prompt one", tmp_path)
-    b = result_path("m", "prompt two", tmp_path)
-    assert a != b
+    p = result_path("qwen3:14b", "abcdef12", tmp_path)
+    assert p == tmp_path / "qwen3_14b_abcdef12.csv"

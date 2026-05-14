@@ -4,15 +4,12 @@ from pathlib import Path
 HASH_LENGTH = 8
 
 
-def load_prompt(path: Path) -> str:
-    """Read a prompt file from disk."""
-    return path.read_text(encoding="utf-8")
-
-
-def prompt_hash(text: str) -> str:
-    """Short, stable hash of the prompt contents."""
-    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
-    return digest[:HASH_LENGTH]
+def load_prompt(path: Path) -> tuple[str, str]:
+    """Read a prompt file, return its text and short content hash."""
+    raw = path.read_bytes()
+    text = raw.decode("utf-8")
+    digest = hashlib.sha256(raw).hexdigest()[:HASH_LENGTH]
+    return text, digest
 
 
 def sanitise_model(name: str) -> str:
@@ -20,6 +17,6 @@ def sanitise_model(name: str) -> str:
     return name.replace("/", "_").replace(":", "_")
 
 
-def result_path(model: str, prompt_text: str, results_dir: Path) -> Path:
+def result_path(model: str, prompt_digest: str, results_dir: Path) -> Path:
     """Build the CSV path for a model + prompt combination."""
-    return results_dir / f"{sanitise_model(model)}_{prompt_hash(prompt_text)}.csv"
+    return results_dir / f"{sanitise_model(model)}_{prompt_digest}.csv"

@@ -26,10 +26,19 @@ Requires Python 3.14 and [Poetry](https://python-poetry.org/).
    poetry run pytest
    ```
 
+## Usage
+
+Preview a sample of rows from the dataset:
+
+```
+poetry run phoney preview --limit 5 --seed 42
+```
+
 ## What works so far
 
 - Dataset loader: reads the CSV into typed `Review` records, with optional
   stratified sampling by label and a deterministic `--seed`.
+- `phoney preview`: prints a Rich table of sampled rows.
 
 ## Acknowledgements
 

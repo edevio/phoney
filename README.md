@@ -39,6 +39,8 @@ poetry run phoney preview --limit 5 --seed 42
 - Dataset loader: reads the CSV into typed `Review` records, with optional
   stratified sampling by label and a deterministic `--seed`.
 - `phoney preview`: prints a Rich table of sampled rows.
+- Prompt loader: reads a prompt file, computes a stable 8-char hash, and
+  builds the matching `results/<model>_<hash>.csv` path.
 
 ## Acknowledgements
 

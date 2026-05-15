@@ -11,3 +11,8 @@ class Review(BaseModel):
     rating: float
     label: Label
     text: str
+
+
+class ProviderResponse(BaseModel):
+    text: str
+    latency_ms: int = Field(ge=0)

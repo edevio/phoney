@@ -41,6 +41,8 @@ poetry run phoney preview --limit 5 --seed 42
 - `phoney preview`: prints a Rich table of sampled rows.
 - Prompt loader: reads a prompt file, computes a stable 8-char hash, and
   builds the matching `results/<model>_<hash>.csv` path.
+- Provider abstraction with an offline `FakeProvider` for tests and plumbing.
+  Real providers (Ollama, etc.) drop in behind the same interface.
 
 ## Acknowledgements
 

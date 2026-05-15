@@ -9,6 +9,7 @@ from .models import Review
 from .prompt import load_prompt, result_path
 from .providers.base import Provider
 from .providers.fake import FakeProvider
+from .providers.ollama import OllamaProvider
 from .runner import run as run_eval
 
 app = typer.Typer(help="Fake review classifier.", no_args_is_help=True)
@@ -44,9 +45,10 @@ def build_preview_table(reviews: list[Review]) -> Table:
 
 
 def get_provider(name: str, model: str) -> Provider:
-    del model  # only relevant for real providers
     if name == "fake":
         return FakeProvider()
+    if name == "ollama":
+        return OllamaProvider(model=model)
     raise typer.BadParameter(f"Unknown provider: {name}")
 
 
@@ -65,8 +67,8 @@ def preview(
 def run(
     prompt: Path = typer.Option(DEFAULT_PROMPT, help="Prompt file."),
     dataset: Path = typer.Option(DEFAULT_DATASET, help="Path to the source CSV."),
-    provider: str = typer.Option("fake", help="Provider name (fake)."),
-    model: str = typer.Option("fake", help="Model identifier."),
+    provider: str = typer.Option("ollama", help="Provider name (fake, ollama)."),
+    model: str = typer.Option("qwen3:14b", help="Model identifier."),
     limit: int = typer.Option(200, min=1, help="Number of rows to sample."),
     seed: int = typer.Option(DEFAULT_SEED, help="Sampling seed."),
     results_dir: Path = typer.Option(DEFAULT_RESULTS_DIR, help="Results directory."),

@@ -34,7 +34,13 @@ Preview a sample of rows from the dataset:
 poetry run phoney preview --limit 5 --seed 42
 ```
 
-Run a classification pass against a sample using the offline fake provider:
+Run a classification pass against a sample. Default is a local Ollama model:
+
+```
+poetry run phoney run --provider ollama --model qwen3:14b --limit 200 --seed 42
+```
+
+Or use the offline fake provider for plumbing checks:
 
 ```
 poetry run phoney run --provider fake --model fake --limit 200 --seed 42
@@ -50,8 +56,8 @@ classified review.
 - `phoney preview`: prints a Rich table of sampled rows.
 - Prompt loader: reads a prompt file, computes a stable 8-char hash, and
   builds the matching `results/<model>_<hash>.csv` path.
-- Provider abstraction with an offline `FakeProvider` for tests and plumbing.
-  Real providers (Ollama, etc.) drop in behind the same interface.
+- Provider abstraction with an offline `FakeProvider` for tests and plumbing,
+  and an `OllamaProvider` for local models via the Ollama daemon.
 - `phoney run`: iterates a sample, classifies each review, parses the
   response into a label and reasoning, writes a results CSV, shows a live
   Rich progress bar. End-to-end works offline with the fake provider.

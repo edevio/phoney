@@ -6,17 +6,23 @@ from rich.table import Table
 
 from .dataset import DEFAULT_SEED, load_reviews
 from .models import Review
+from .prompt import load_prompt, result_path
+from .providers.base import Provider
+from .providers.fake import FakeProvider
+from .runner import run as run_eval
 
 app = typer.Typer(help="Fake review classifier.", no_args_is_help=True)
 console = Console()
+
+DEFAULT_DATASET = Path("data/fake-reviews-dataset.csv")
+DEFAULT_PROMPT = Path("prompts/prompt.txt")
+DEFAULT_RESULTS_DIR = Path("results")
+PREVIEW_TEXT_CHARS = 120
 
 
 @app.callback()
 def _root() -> None:
     """Keeps subcommands explicit even when only one exists."""
-
-DEFAULT_DATASET = Path("data/fake-reviews-dataset.csv")
-PREVIEW_TEXT_CHARS = 120
 
 
 def build_preview_table(reviews: list[Review]) -> Table:
@@ -28,9 +34,20 @@ def build_preview_table(reviews: list[Review]) -> Table:
     table.add_column("text")
 
     for r in reviews:
-        text = r.text if len(r.text) <= PREVIEW_TEXT_CHARS else r.text[: PREVIEW_TEXT_CHARS - 1] + "…"
+        text = (
+            r.text
+            if len(r.text) <= PREVIEW_TEXT_CHARS
+            else r.text[: PREVIEW_TEXT_CHARS - 1] + "…"
+        )
         table.add_row(str(r.row_id), r.category, f"{r.rating:g}", r.label, text)
     return table
+
+
+def get_provider(name: str, model: str) -> Provider:
+    del model  # only relevant for real providers
+    if name == "fake":
+        return FakeProvider()
+    raise typer.BadParameter(f"Unknown provider: {name}")
 
 
 @app.command()
@@ -42,3 +59,31 @@ def preview(
     """Sample rows from the dataset and print them as a Rich table."""
     reviews = load_reviews(dataset, limit=limit, seed=seed)
     console.print(build_preview_table(reviews))
+
+
+@app.command()
+def run(
+    prompt: Path = typer.Option(DEFAULT_PROMPT, help="Prompt file."),
+    dataset: Path = typer.Option(DEFAULT_DATASET, help="Path to the source CSV."),
+    provider: str = typer.Option("fake", help="Provider name (fake)."),
+    model: str = typer.Option("fake", help="Model identifier."),
+    limit: int = typer.Option(200, min=1, help="Number of rows to sample."),
+    seed: int = typer.Option(DEFAULT_SEED, help="Sampling seed."),
+    results_dir: Path = typer.Option(DEFAULT_RESULTS_DIR, help="Results directory."),
+) -> None:
+    """Classify a sample of reviews using the chosen provider."""
+    instruction, prompt_digest = load_prompt(prompt)
+    output_path = result_path(model, prompt_digest, results_dir)
+
+    reviews = load_reviews(dataset, limit=limit, seed=seed)
+    provider_impl = get_provider(provider, model)
+
+    written = run_eval(
+        reviews,
+        instruction=instruction,
+        provider=provider_impl,
+        output_path=output_path,
+        total=len(reviews),
+        console=console,
+    )
+    console.print(f"[green]Wrote {len(reviews)} rows to[/green] {written}")

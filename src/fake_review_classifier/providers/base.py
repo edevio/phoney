@@ -5,8 +5,8 @@ from ..models import ProviderResponse
 
 @runtime_checkable
 class Provider(Protocol):
-    """Anything that classifies a review given a prompt."""
+    """Anything that takes a fully-rendered prompt and returns a response."""
 
     name: str
 
-    def classify(self, prompt: str, review_text: str) -> ProviderResponse: ...
+    def classify(self, prompt: str) -> ProviderResponse: ...

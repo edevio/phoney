@@ -34,6 +34,15 @@ Preview a sample of rows from the dataset:
 poetry run phoney preview --limit 5 --seed 42
 ```
 
+Run a classification pass against a sample using the offline fake provider:
+
+```
+poetry run phoney run --provider fake --model fake --limit 200 --seed 42
+```
+
+Results land in `results/<model>_<prompt-hash>.csv` with one row per
+classified review.
+
 ## What works so far
 
 - Dataset loader: reads the CSV into typed `Review` records, with optional
@@ -43,6 +52,9 @@ poetry run phoney preview --limit 5 --seed 42
   builds the matching `results/<model>_<hash>.csv` path.
 - Provider abstraction with an offline `FakeProvider` for tests and plumbing.
   Real providers (Ollama, etc.) drop in behind the same interface.
+- `phoney run`: iterates a sample, classifies each review, parses the
+  response into a label and reasoning, writes a results CSV, shows a live
+  Rich progress bar. End-to-end works offline with the fake provider.
 
 ## Acknowledgements
 

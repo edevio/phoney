@@ -6,18 +6,17 @@ from ..models import ProviderResponse
 class FakeProvider:
     """Deterministic offline provider for tests and end-to-end plumbing.
 
-    Label is decided by hashing the review text, so the same review always
-    gets the same label.
+    Decides the label from a hash of the rendered prompt, so the same prompt
+    always gets the same answer.
     """
 
     name = "fake"
 
-    def classify(self, prompt: str, review_text: str) -> ProviderResponse:
-        del prompt  # ignored; the fake doesn't follow instructions
-        label = "CG" if self._hash_bit(review_text) else "OR"
+    def classify(self, prompt: str) -> ProviderResponse:
+        label = "CG" if self._hash_bit(prompt) else "OR"
         text = (
             f"{label}\n"
-            f"Deterministic fake response based on a hash of the review text."
+            f"Deterministic fake response based on a hash of the prompt."
         )
         return ProviderResponse(text=text, latency_ms=0)
 

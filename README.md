@@ -40,6 +40,12 @@ Run a classification pass against a sample. Default is a local Ollama model:
 poetry run phoney run --provider ollama --model qwen3:14b --limit 200 --seed 42
 ```
 
+Or run against the entire dataset:
+
+```
+poetry run phoney run --provider ollama --model qwen3:14b --all
+```
+
 Or use the offline fake provider for plumbing checks:
 
 ```
@@ -67,6 +73,7 @@ naming the row, followed by the full prompt the model received for that row.
   Rich progress bar. End-to-end works offline with the fake provider.
 - `--save-prompt` writes every rendered prompt (one per row, with headers)
   to a sidecar next to the CSV.
+- `--all` runs against every row in the dataset and overrides `--limit`.
 
 ## Acknowledgements
 

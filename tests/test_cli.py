@@ -62,6 +62,34 @@ def test_run_without_save_prompt_has_no_sidecar(tmp_path: Path) -> None:
     assert list(results_dir.glob("*.csv"))
 
 
+def test_run_all_rows_overrides_limit(tmp_path: Path) -> None:
+    csv_path, prompt_path, results_dir = _setup_run(tmp_path)
+
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--dataset", str(csv_path),
+            "--prompt", str(prompt_path),
+            "--provider", "fake",
+            "--model", "fake",
+            "--limit", "1",
+            "--all",
+            "--results-dir", str(results_dir),
+        ],
+    )
+
+    import csv as _csv
+
+    assert result.exit_code == 0, result.output
+    csvs = list(results_dir.glob("*.csv"))
+    assert len(csvs) == 1
+    with csvs[0].open(encoding="utf-8") as f:
+        rows = list(_csv.DictReader(f))
+    # The fixture has 4 rows, so --all should yield 4 result rows.
+    assert len(rows) == 4
+
+
 def test_run_with_save_prompt_writes_sidecar(tmp_path: Path) -> None:
     csv_path, prompt_path, results_dir = _setup_run(tmp_path)
 

@@ -70,6 +70,11 @@ def run(
     provider: str = typer.Option("ollama", help="Provider name (fake, ollama)."),
     model: str = typer.Option("qwen3:14b", help="Model identifier."),
     limit: int = typer.Option(200, min=1, help="Number of rows to sample."),
+    all_rows: bool = typer.Option(
+        False,
+        "--all",
+        help="Run against every row in the dataset; overrides --limit.",
+    ),
     seed: int = typer.Option(DEFAULT_SEED, help="Sampling seed."),
     results_dir: Path = typer.Option(DEFAULT_RESULTS_DIR, help="Results directory."),
     save_prompt: bool = typer.Option(
@@ -82,7 +87,8 @@ def run(
     instruction, prompt_digest = load_prompt(prompt)
     output_path = result_path(model, prompt_digest, results_dir)
 
-    reviews = load_reviews(dataset, limit=limit, seed=seed)
+    sample_limit = None if all_rows else limit
+    reviews = load_reviews(dataset, limit=sample_limit, seed=seed)
     provider_impl = get_provider(provider, model)
 
     collected: list[tuple[Review, str]] = []

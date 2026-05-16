@@ -58,7 +58,7 @@ def test_run_without_save_prompt_has_no_sidecar(tmp_path: Path) -> None:
     )
 
     assert result.exit_code == 0, result.output
-    assert not list(results_dir.glob("*.prompt.txt"))
+    assert not list(results_dir.glob("*_prompts.txt"))
     assert list(results_dir.glob("*.csv"))
 
 
@@ -80,6 +80,15 @@ def test_run_with_save_prompt_writes_sidecar(tmp_path: Path) -> None:
     )
 
     assert result.exit_code == 0, result.output
-    sidecars = list(results_dir.glob("*.prompt.txt"))
+    sidecars = list(results_dir.glob("*_prompts.txt"))
     assert len(sidecars) == 1
-    assert sidecars[0].read_text(encoding="utf-8") == "classify the review"
+
+    content = sidecars[0].read_text(encoding="utf-8")
+    # Two entries with delimiter headers
+    assert content.count("=== row_id=") == 2
+    # The instruction is present in every rendered prompt
+    assert "classify the review" in content
+    # The output contract appears in every rendered prompt
+    assert "CG or OR on the first line" in content
+    # Per-row data is interpolated
+    assert "<text>first</text>" in content or "<text>second</text>" in content

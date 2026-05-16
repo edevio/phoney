@@ -73,7 +73,9 @@ def run(
     seed: int = typer.Option(DEFAULT_SEED, help="Sampling seed."),
     results_dir: Path = typer.Option(DEFAULT_RESULTS_DIR, help="Results directory."),
     save_prompt: bool = typer.Option(
-        False, "--save-prompt", help="Also write the prompt next to the results CSV."
+        False,
+        "--save-prompt",
+        help="Also write every rendered prompt to a sidecar file.",
     ),
 ) -> None:
     """Classify a sample of reviews using the chosen provider."""
@@ -83,6 +85,13 @@ def run(
     reviews = load_reviews(dataset, limit=limit, seed=seed)
     provider_impl = get_provider(provider, model)
 
+    collected: list[tuple[Review, str]] = []
+    on_prompt = (
+        (lambda rendered, review: collected.append((review, rendered)))
+        if save_prompt
+        else None
+    )
+
     written = run_eval(
         reviews,
         instruction=instruction,
@@ -90,10 +99,35 @@ def run(
         output_path=output_path,
         total=len(reviews),
         console=console,
+        on_prompt=on_prompt,
     )
     console.print(f"[green]Wrote {len(reviews)} rows to[/green] {written}")
 
     if save_prompt:
-        sidecar = written.with_suffix(".prompt.txt")
-        sidecar.write_text(instruction, encoding="utf-8")
-        console.print(f"[green]Saved prompt to[/green] {sidecar}")
+        sidecar = write_prompts_sidecar(written, collected, model, prompt_digest)
+        console.print(f"[green]Saved prompts to[/green] {sidecar}")
+
+
+def write_prompts_sidecar(
+    csv_path: Path,
+    entries: list[tuple[Review, str]],
+    model: str,
+    prompt_digest: str,
+) -> Path:
+    """Write every rendered prompt to one file, one entry per row."""
+    sidecar = csv_path.with_name(f"{csv_path.stem}_prompts.txt")
+    with sidecar.open("w", encoding="utf-8") as f:
+        for i, (review, rendered) in enumerate(entries):
+            if i > 0:
+                f.write("\n")
+            f.write(
+                f"=== row_id={review.row_id} "
+                f"category={review.category} "
+                f"true_label={review.label} "
+                f"model={model} "
+                f"hash={prompt_digest} ===\n"
+            )
+            f.write(rendered)
+            if not rendered.endswith("\n"):
+                f.write("\n")
+    return sidecar

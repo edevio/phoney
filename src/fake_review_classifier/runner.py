@@ -1,6 +1,6 @@
 import csv
 from pathlib import Path
-from typing import Iterable
+from typing import Callable, Iterable
 
 from rich.console import Console
 from rich.progress import (
@@ -52,8 +52,13 @@ def run(
     output_path: Path,
     total: int | None = None,
     console: Console | None = None,
+    on_prompt: Callable[[str, Review], None] | None = None,
 ) -> Path:
-    """Iterate reviews, classify with the provider, write results CSV."""
+    """Iterate reviews, classify with the provider, write results CSV.
+
+    If `on_prompt` is given, it is called with the rendered prompt and the
+    row after the prompt is built and before the provider is called.
+    """
     console = console or Console()
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -71,6 +76,8 @@ def run(
             task = progress.add_task("classifying", total=total)
             for review in reviews:
                 prompt = render_prompt(instruction, review)
+                if on_prompt is not None:
+                    on_prompt(prompt, review)
                 response = provider.classify(prompt)
                 label, reasoning = parse_response(response)
                 writer.writerow(

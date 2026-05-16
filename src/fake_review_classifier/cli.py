@@ -72,6 +72,9 @@ def run(
     limit: int = typer.Option(200, min=1, help="Number of rows to sample."),
     seed: int = typer.Option(DEFAULT_SEED, help="Sampling seed."),
     results_dir: Path = typer.Option(DEFAULT_RESULTS_DIR, help="Results directory."),
+    save_prompt: bool = typer.Option(
+        False, "--save-prompt", help="Also write the prompt next to the results CSV."
+    ),
 ) -> None:
     """Classify a sample of reviews using the chosen provider."""
     instruction, prompt_digest = load_prompt(prompt)
@@ -89,3 +92,8 @@ def run(
         console=console,
     )
     console.print(f"[green]Wrote {len(reviews)} rows to[/green] {written}")
+
+    if save_prompt:
+        sidecar = written.with_suffix(".prompt.txt")
+        sidecar.write_text(instruction, encoding="utf-8")
+        console.print(f"[green]Saved prompt to[/green] {sidecar}")

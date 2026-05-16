@@ -49,6 +49,10 @@ poetry run phoney run --provider fake --model fake --limit 200 --seed 42
 Results land in `results/<model>_<prompt-hash>.csv` with one row per
 classified review.
 
+Pass `--save-prompt` to also write the prompt verbatim alongside the CSV at
+`results/<model>_<prompt-hash>.prompt.txt`, so you can inspect exactly what
+was sent for that run.
+
 ## What works so far
 
 - Dataset loader: reads the CSV into typed `Review` records, with optional
@@ -61,6 +65,7 @@ classified review.
 - `phoney run`: iterates a sample, classifies each review, parses the
   response into a label and reasoning, writes a results CSV, shows a live
   Rich progress bar. End-to-end works offline with the fake provider.
+- `--save-prompt` writes the prompt verbatim next to the CSV for that run.
 
 ## Acknowledgements
 

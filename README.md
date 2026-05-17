@@ -55,6 +55,8 @@ Or use the offline fake provider for plumbing checks:
 poetry run phoney classify --provider fake --model fake --limit 200 --seed 42
 ```
 
+Add `--verbose` to also print the misclassified rows once the score is shown.
+
 Results land in `results/<model>_<prompt-hash>.csv` with one row per
 classified review.
 

@@ -36,22 +36,23 @@ Preview a sample of rows from the dataset:
 poetry run phoney preview --limit 5 --seed 42
 ```
 
-Run a classification pass against a sample. Default is a local Ollama model:
+Classify a sample of reviews. Scores are printed automatically when the run
+completes. Default is a local Ollama model:
 
 ```
-poetry run phoney run --provider ollama --model qwen3:14b --limit 200 --seed 42
+poetry run phoney classify --provider ollama --model qwen3:14b --limit 200 --seed 42
 ```
 
 Or run against the entire dataset:
 
 ```
-poetry run phoney run --provider ollama --model qwen3:14b --all
+poetry run phoney classify --provider ollama --model qwen3:14b --all
 ```
 
 Or use the offline fake provider for plumbing checks:
 
 ```
-poetry run phoney run --provider fake --model fake --limit 200 --seed 42
+poetry run phoney classify --provider fake --model fake --limit 200 --seed 42
 ```
 
 Results land in `results/<model>_<prompt-hash>.csv` with one row per
@@ -61,7 +62,7 @@ Pass `--save-prompt` to also write every rendered prompt to a sidecar at
 `results/<model>_<prompt-hash>_prompts.txt`. Each entry has a header line
 naming the row, followed by the full prompt the model received for that row.
 
-Score a completed results CSV:
+Score an existing results CSV without re-running the model:
 
 ```
 poetry run phoney score results/qwen3_14b_b0cef827.csv
@@ -78,16 +79,17 @@ Add `--verbose` to also see the misclassified rows.
   builds the matching `results/<model>_<hash>.csv` path.
 - Provider abstraction with an offline `FakeProvider` for tests and plumbing,
   and an `OllamaProvider` for local models via the Ollama daemon.
-- `phoney run`: iterates a sample, classifies each review, parses the
+- `phoney classify`: iterates a sample, classifies each review, parses the
   response into a label and reasoning, writes a results CSV, shows a live
-  Rich progress bar. End-to-end works offline with the fake provider.
+  Rich progress bar, and prints accuracy/confusion/per-category at the end.
+  `--verbose` also prints misclassified rows.
 - `--save-prompt` writes every rendered prompt (one per row, with headers)
   to a sidecar next to the CSV.
 - `--all` runs against every row in the dataset and overrides `--limit`.
-- `phoney score <results.csv>`: prints accuracy, confusion matrix, sklearn
-  classification report, and per-category accuracy. `--verbose` adds a table
-  of misclassified rows. Unparseable rows are excluded from scoring; a note
-  is printed below the report if any were present.
+- `phoney score <results.csv>`: same scoring view applied to an existing
+  results CSV. `--verbose` adds the misclassified rows table. Unparseable
+  rows are excluded from scoring; a note is printed below the report if any
+  were present.
 
 ## Acknowledgements
 

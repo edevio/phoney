@@ -66,7 +66,7 @@ def preview(
 
 
 @app.command()
-def run(
+def classify(
     prompt: Path = typer.Option(DEFAULT_PROMPT, help="Prompt file."),
     dataset: Path = typer.Option(DEFAULT_DATASET, help="Path to the source CSV."),
     provider: str = typer.Option("ollama", help="Provider name (fake, ollama)."),
@@ -84,8 +84,11 @@ def run(
         "--save-prompt",
         help="Also write every rendered prompt to a sidecar file.",
     ),
+    verbose: bool = typer.Option(
+        False, "--verbose", help="Also print misclassified rows after scoring."
+    ),
 ) -> None:
-    """Classify a sample of reviews using the chosen provider."""
+    """Classify a sample of reviews and print the score."""
     instruction, prompt_digest = load_prompt(prompt)
     output_path = result_path(model, prompt_digest, results_dir)
 
@@ -114,6 +117,8 @@ def run(
     if save_prompt:
         sidecar = write_prompts_sidecar(written, collected, model, prompt_digest)
         console.print(f"[green]Saved prompts to[/green] {sidecar}")
+
+    render_scores(compute_scores(load_results(written)), console, verbose=verbose)
 
 
 @app.command()

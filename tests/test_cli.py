@@ -47,7 +47,7 @@ def test_run_without_save_prompt_has_no_sidecar(tmp_path: Path) -> None:
     result = runner.invoke(
         app,
         [
-            "run",
+            "classify",
             "--dataset", str(csv_path),
             "--prompt", str(prompt_path),
             "--provider", "fake",
@@ -68,7 +68,7 @@ def test_run_all_rows_overrides_limit(tmp_path: Path) -> None:
     result = runner.invoke(
         app,
         [
-            "run",
+            "classify",
             "--dataset", str(csv_path),
             "--prompt", str(prompt_path),
             "--provider", "fake",
@@ -96,7 +96,7 @@ def test_run_with_save_prompt_writes_sidecar(tmp_path: Path) -> None:
     result = runner.invoke(
         app,
         [
-            "run",
+            "classify",
             "--dataset", str(csv_path),
             "--prompt", str(prompt_path),
             "--provider", "fake",

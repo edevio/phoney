@@ -10,7 +10,9 @@ from .prompt import load_prompt, result_path
 from .providers.base import Provider
 from .providers.fake import FakeProvider
 from .providers.ollama import OllamaProvider
+from .render import render_scores
 from .runner import run as run_eval
+from .scoring import load_results, score as compute_scores
 
 app = typer.Typer(help="Fake review classifier.", no_args_is_help=True)
 console = Console()
@@ -112,6 +114,16 @@ def run(
     if save_prompt:
         sidecar = write_prompts_sidecar(written, collected, model, prompt_digest)
         console.print(f"[green]Saved prompts to[/green] {sidecar}")
+
+
+@app.command()
+def score(
+    results: Path = typer.Argument(..., help="Path to a results CSV from `phoney run`."),
+    verbose: bool = typer.Option(False, "--verbose", help="Also print misclassified rows."),
+) -> None:
+    """Print accuracy and classification metrics for a results CSV."""
+    df = load_results(results)
+    render_scores(compute_scores(df), console, verbose=verbose)
 
 
 def write_prompts_sidecar(

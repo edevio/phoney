@@ -61,6 +61,14 @@ Pass `--save-prompt` to also write every rendered prompt to a sidecar at
 `results/<model>_<prompt-hash>_prompts.txt`. Each entry has a header line
 naming the row, followed by the full prompt the model received for that row.
 
+Score a completed results CSV:
+
+```
+poetry run phoney score results/qwen3_14b_b0cef827.csv
+```
+
+Add `--verbose` to also see the misclassified rows.
+
 ## What works so far
 
 - Dataset loader: reads the CSV into typed `Review` records, with optional
@@ -76,6 +84,10 @@ naming the row, followed by the full prompt the model received for that row.
 - `--save-prompt` writes every rendered prompt (one per row, with headers)
   to a sidecar next to the CSV.
 - `--all` runs against every row in the dataset and overrides `--limit`.
+- `phoney score <results.csv>`: prints accuracy, confusion matrix, sklearn
+  classification report, and per-category accuracy. `--verbose` adds a table
+  of misclassified rows. Unparseable rows are excluded from scoring; a note
+  is printed below the report if any were present.
 
 ## Acknowledgements
 

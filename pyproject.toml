@@ -8,7 +8,7 @@ authors = [
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.14"
-dependencies = ["pydantic (>=2.13.4,<3.0.0)", "typer (>=0.25.1,<0.26.0)", "rich (>=15.0.0,<16.0.0)", "ollama (>=0.6.2,<0.7.0)"]
+dependencies = ["pydantic (>=2.13.4,<3.0.0)", "typer (>=0.25.1,<0.26.0)", "rich (>=15.0.0,<16.0.0)", "ollama (>=0.6.2,<0.7.0)", "pandas (>=3.0.3,<4.0.0)", "scikit-learn (>=1.8.0,<2.0.0)"]
 
 [project.scripts]
 phoney = "phoney.cli:app"

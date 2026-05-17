@@ -1,4 +1,6 @@
-# fake-review-classifier
+# PHONEY (a fake review classifier)
+
+**P**inpointing **H**ollow **O**pinions **N**ot **E**arnestly **Y**ielded. ;-) 
 
 Local-first LLM classifier for fake review detection. Point it at a prompt
 file and a dataset, get per-row predictions back as a CSV.

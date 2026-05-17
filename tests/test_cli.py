@@ -2,7 +2,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from fake_review_classifier.cli import app
+from phoney.cli import app
 
 runner = CliRunner()
 

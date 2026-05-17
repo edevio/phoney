@@ -1,8 +1,8 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-from fake_review_classifier.providers.base import Provider
-from fake_review_classifier.providers.ollama import OllamaProvider
+from phoney.providers.base import Provider
+from phoney.providers.ollama import OllamaProvider
 
 
 def _provider_with_mock(response_text: str) -> tuple[OllamaProvider, MagicMock]:

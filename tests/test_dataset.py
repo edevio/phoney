@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from fake_review_classifier.dataset import (
+from phoney.dataset import (
     load_reviews,
     read_all,
     stratified_sample,

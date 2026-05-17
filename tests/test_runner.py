@@ -1,9 +1,9 @@
 import csv
 from pathlib import Path
 
-from fake_review_classifier.models import Review
-from fake_review_classifier.providers.fake import FakeProvider
-from fake_review_classifier.runner import RESULTS_FIELDS, render_prompt, run
+from phoney.models import Review
+from phoney.providers.fake import FakeProvider
+from phoney.runner import RESULTS_FIELDS, render_prompt, run
 
 
 def _reviews() -> list[Review]:

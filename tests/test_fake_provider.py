@@ -1,5 +1,5 @@
-from fake_review_classifier.providers.base import Provider
-from fake_review_classifier.providers.fake import FakeProvider
+from phoney.providers.base import Provider
+from phoney.providers.fake import FakeProvider
 
 
 def test_fake_provider_conforms_to_protocol() -> None:

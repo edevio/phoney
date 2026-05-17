@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fake_review_classifier.prompt import (
+from phoney.prompt import (
     HASH_LENGTH,
     load_prompt,
     result_path,

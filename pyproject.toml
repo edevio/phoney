@@ -1,5 +1,5 @@
 [project]
-name = "fake-review-classifier"
+name = "phoney"
 version = "0.1.0"
 description = "Local-first LLM classifier for fake review detection."
 authors = [
@@ -11,10 +11,10 @@ requires-python = ">=3.14"
 dependencies = ["pydantic (>=2.13.4,<3.0.0)", "typer (>=0.25.1,<0.26.0)", "rich (>=15.0.0,<16.0.0)", "ollama (>=0.6.2,<0.7.0)"]
 
 [project.scripts]
-phoney = "fake_review_classifier.cli:app"
+phoney = "phoney.cli:app"
 
 [tool.poetry]
-packages = [{include = "fake_review_classifier", from = "src"}]
+packages = [{include = "phoney", from = "src"}]
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.0"

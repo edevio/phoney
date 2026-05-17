@@ -1,5 +1,5 @@
-from fake_review_classifier.models import ProviderResponse
-from fake_review_classifier.parsing import UNPARSEABLE, parse_response
+from phoney.models import ProviderResponse
+from phoney.parsing import UNPARSEABLE, parse_response
 
 
 def _resp(text: str) -> ProviderResponse:

@@ -1,10 +1,17 @@
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from phoney.cli import app
 
 runner = CliRunner()
+
+
+@pytest.fixture(autouse=True)
+def _chdir_tmp(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Run every test from a fresh cwd so the default prompts/generations/ lands in tmp."""
+    monkeypatch.chdir(tmp_path)
 
 
 def _write_csv(path: Path) -> None:

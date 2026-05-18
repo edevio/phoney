@@ -57,6 +57,13 @@ poetry run phoney classify --provider fake --model fake --limit 200 --seed 42
 
 Add `--verbose` to also print the misclassified rows once the score is shown.
 
+Every run automatically snapshots the prompt text to
+`prompts/generations/<hash>.txt`. Re-run a historical prompt by its hash:
+
+```
+poetry run phoney classify --hash 3540c00f --provider ollama --model qwen3:14b
+```
+
 Results land in `results/<model>_<prompt-hash>.csv` with one row per
 classified review.
 
@@ -88,6 +95,10 @@ Add `--verbose` to also see the misclassified rows.
 - `--save-prompt` writes every rendered prompt (one per row, with headers)
   to a sidecar next to the CSV.
 - `--all` runs against every row in the dataset and overrides `--limit`.
+- Prompt generations archive: every `classify` run snapshots
+  `prompts/prompt.txt` to `prompts/generations/<hash>.txt`. Idempotent.
+  Pair this with the matching `results/<model>_<hash>.csv` to reproduce any
+  past run by its hash. `--hash <hash>` re-runs a historical prompt.
 - `phoney score <results.csv>`: same scoring view applied to an existing
   results CSV. `--verbose` adds the misclassified rows table. Unparseable
   rows are excluded from scoring; a note is printed below the report if any

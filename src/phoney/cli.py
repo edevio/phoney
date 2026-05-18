@@ -6,7 +6,7 @@ from rich.table import Table
 
 from .dataset import DEFAULT_SEED, load_reviews
 from .models import Review
-from .prompt import load_prompt, result_path
+from .prompt import load_or_resolve_prompt, result_path
 from .providers.base import Provider
 from .providers.fake import FakeProvider
 from .providers.ollama import OllamaProvider
@@ -19,6 +19,7 @@ console = Console()
 
 DEFAULT_DATASET = Path("data/fake-reviews-dataset.csv")
 DEFAULT_PROMPT = Path("prompts/prompt.txt")
+DEFAULT_GENERATIONS_DIR = Path("prompts/generations")
 DEFAULT_RESULTS_DIR = Path("results")
 PREVIEW_TEXT_CHARS = 120
 
@@ -68,6 +69,11 @@ def preview(
 @app.command()
 def classify(
     prompt: Path = typer.Option(DEFAULT_PROMPT, help="Prompt file."),
+    hash_val: str = typer.Option(
+        None,
+        "--hash",
+        help="Re-run with a historical prompt by hash from prompts/generations/.",
+    ),
     dataset: Path = typer.Option(DEFAULT_DATASET, help="Path to the source CSV."),
     provider: str = typer.Option("ollama", help="Provider name (fake, ollama)."),
     model: str = typer.Option("qwen3:14b", help="Model identifier."),
@@ -89,7 +95,21 @@ def classify(
     ),
 ) -> None:
     """Classify a sample of reviews and print the score."""
-    instruction, prompt_digest = load_prompt(prompt)
+    try:
+        instruction, prompt_digest, snapshotted = load_or_resolve_prompt(
+            generations_dir=DEFAULT_GENERATIONS_DIR,
+            fallback_prompt_path=prompt,
+            hash_val=hash_val,
+        )
+    except FileNotFoundError as e:
+        raise typer.BadParameter(str(e))
+
+    if snapshotted:
+        console.print(
+            f"[green]Snapshotted prompt to[/green] "
+            f"{DEFAULT_GENERATIONS_DIR}/{prompt_digest}.txt"
+        )
+
     output_path = result_path(model, prompt_digest, results_dir)
 
     sample_limit = None if all_rows else limit

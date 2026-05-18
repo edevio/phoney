@@ -1,12 +1,14 @@
 # PHONEY (a fake review classifier)
 
-**P**inpointing **H**ollow **O**pinions **N**ot **E**arnestly **Y**ielded. ;-) 
+**P**inpointing **H**ollow **O**pinions **N**ot **E**arnestly **Y**ielded. ;-)
 
 Local-first LLM classifier for fake review detection. Point it at a prompt
-file and a dataset, get per-row predictions back as a CSV.
+file and a dataset, get per-row predictions back as a CSV with accuracy and
+a confusion matrix printed at the end.
 
-Designed to run on a workstation with no internet access. Default provider is
-Ollama.
+Designed to run on a workstation with no internet access. Default provider
+is Ollama. The provider layer is abstract; an Anthropic/OpenAI provider can
+be dropped in behind the same interface.
 
 ## Getting started
 
@@ -28,81 +30,177 @@ Requires Python 3.14 and [Poetry](https://python-poetry.org/).
    poetry run pytest
    ```
 
-## Usage
+## Commands
 
-Preview a sample of rows from the dataset:
+All commands go through the `phoney` CLI.
 
-```
-poetry run phoney preview --limit 5 --seed 42
-```
+```bash
+# Look at a few rows from the dataset
+poetry run phoney preview --limit 10 --seed 42
 
-Classify a sample of reviews. Scores are printed automatically when the run
-completes. Default is a local Ollama model:
+# Classify a sample; scores are printed automatically when the run completes
+poetry run phoney classify --provider ollama --model qwen3:14b --limit 200
 
-```
-poetry run phoney classify --provider ollama --model qwen3:14b --limit 200 --seed 42
-```
-
-Or run against the entire dataset:
-
-```
+# Run against the entire dataset
 poetry run phoney classify --provider ollama --model qwen3:14b --all
-```
 
-Or use the offline fake provider for plumbing checks:
-
-```
-poetry run phoney classify --provider fake --model fake --limit 200 --seed 42
-```
-
-Add `--verbose` to also print the misclassified rows once the score is shown.
-
-Every run automatically snapshots the prompt text to
-`prompts/generations/<hash>.txt`. Re-run a historical prompt by its hash:
-
-```
+# Re-run a historical prompt by its hash
 poetry run phoney classify --hash 3540c00f --provider ollama --model qwen3:14b
+
+# Score an existing results CSV (no model call)
+poetry run phoney score results/qwen3_14b_3540c00f.csv
+
+# Offline plumbing check using the fake provider (no model, no network)
+poetry run phoney classify --provider fake --model fake --limit 10
 ```
 
-Results land in `results/<model>_<prompt-hash>.csv` with one row per
-classified review.
+### `classify` flags
 
-Pass `--save-prompt` to also write every rendered prompt to a sidecar at
-`results/<model>_<prompt-hash>_prompts.txt`. Each entry has a header line
-naming the row, followed by the full prompt the model received for that row.
+| Flag | Description |
+|------|-------------|
+| `--provider` | `ollama` (default) or `fake` (offline). |
+| `--model` | Model identifier passed to the provider, e.g. `qwen3:14b`. |
+| `--prompt` | Path to the prompt file. Default `prompts/prompt.txt`. |
+| `--hash` | 8-char prompt hash from `prompts/generations/`. Overrides `--prompt`. Fails immediately if the hash is not in the archive. |
+| `--limit` | Sample size, default 200. Stratified by label. |
+| `--all` | Run every row in the dataset. Overrides `--limit`. |
+| `--seed` | Sampling seed, default 42. Same seed gives the same rows. |
+| `--results-dir` | Where to write the results CSV. Default `results/`. |
+| `--save-prompt` | Also write every rendered prompt to `results/<model>_<hash>_prompts.txt`. |
+| `--verbose` | After scoring, also print a table of misclassified rows. |
 
-Score an existing results CSV without re-running the model:
+### `score` flags
+
+| Flag | Description |
+|------|-------------|
+| (positional) | Path to a results CSV produced by `phoney classify`. |
+| `--verbose` | Also print misclassified rows. |
+
+## Reference
+
+### Prompt generations archive
+
+Every `classify` run snapshots the working prompt to a hash-named file. The
+archive is committed, so any historical prompt can be reproduced from the
+repo state:
 
 ```
-poetry run phoney score results/qwen3_14b_b0cef827.csv
+prompts/
+  prompt.txt                       # the working prompt; edit this
+  generations/
+    3540c00f.txt                   # snapshot, one per unique content hash
+    f8e871f7.txt
+    ...
 ```
 
-Add `--verbose` to also see the misclassified rows.
+Flow:
 
-## What works so far
+- **No `--hash`**: read `prompts/prompt.txt`, compute its 8-char SHA-256
+  prefix, write `prompts/generations/<hash>.txt` if not already present.
+- **With `--hash abc12345`**: load `prompts/generations/abc12345.txt` and use
+  that. `prompts/prompt.txt` is ignored. Errors if the file is missing.
 
-- Dataset loader: reads the CSV into typed `Review` records, with optional
-  stratified sampling by label and a deterministic `--seed`.
-- `phoney preview`: prints a Rich table of sampled rows.
-- Prompt loader: reads a prompt file, computes a stable 8-char hash, and
-  builds the matching `results/<model>_<hash>.csv` path.
-- Provider abstraction with an offline `FakeProvider` for tests and plumbing,
-  and an `OllamaProvider` for local models via the Ollama daemon.
-- `phoney classify`: iterates a sample, classifies each review, parses the
-  response into a label and reasoning, writes a results CSV, shows a live
-  Rich progress bar, and prints accuracy/confusion/per-category at the end.
-  `--verbose` also prints misclassified rows.
-- `--save-prompt` writes every rendered prompt (one per row, with headers)
-  to a sidecar next to the CSV.
-- `--all` runs against every row in the dataset and overrides `--limit`.
-- Prompt generations archive: every `classify` run snapshots
-  `prompts/prompt.txt` to `prompts/generations/<hash>.txt`. Idempotent.
-  Pair this with the matching `results/<model>_<hash>.csv` to reproduce any
-  past run by its hash. `--hash <hash>` re-runs a historical prompt.
-- `phoney score <results.csv>`: same scoring view applied to an existing
-  results CSV. `--verbose` adds the misclassified rows table. Unparseable
-  rows are excluded from scoring; a note is printed below the report if any
-  were present.
+Each results CSV's filename embeds the same hash, so a `results/...csv` and a
+`prompts/generations/<hash>.txt` always pair up.
+
+### Result filenames
+
+```
+results/<model>_<prompt-hash>.csv                 # predictions
+results/<model>_<prompt-hash>_prompts.txt         # only with --save-prompt
+```
+
+| Component | Description |
+|---|---|
+| `<model>` | Model identifier, with `/` and `:` replaced by `_`. e.g. `qwen3_14b`. |
+| `<prompt-hash>` | First 8 hex chars of the prompt file's SHA-256. |
+
+To verify a prompt hash manually:
+
+```bash
+# macOS
+shasum -a 256 prompts/prompt.txt | cut -c1-8
+
+# Linux
+sha256sum prompts/prompt.txt | cut -c1-8
+```
+
+### Results CSV schema
+
+One row per classified review, in the order they were sampled.
+
+| Column | Description |
+|---|---|
+| `row_id` | Index of the row in the source `fake-reviews-dataset.csv`. Lets you join back to the original record. |
+| `category` | Product category from the source row, e.g. `Home_and_Kitchen_5`. |
+| `true_label` | Human ground-truth label: `CG` (computer-generated) or `OR` (original). |
+| `model_label` | What the model said: `CG`, `OR`, or `UNPARSEABLE` if the response did not start with one of those two tokens. |
+| `reasoning` | Short explanation extracted from the model's response (lines after the label). |
+| `model_raw` | The full unmodified provider response. Useful for debugging unparseable rows. |
+| `latency_ms` | Wall-clock time for that provider call, in milliseconds. |
+
+### Save-prompt sidecar format
+
+When `--save-prompt` is passed, every rendered prompt is written to
+`results/<model>_<prompt-hash>_prompts.txt`, one entry per row, in the same
+order as the CSV. Each entry has a header line followed by the full prompt
+the model received:
+
+```
+=== row_id=14632 category=Movies_and_TV_5 true_label=OR model=qwen3:14b hash=3540c00f ===
+<full rendered prompt for that row, including instruction, data block, and output contract>
+
+=== row_id=16068 ... ===
+<next prompt>
+```
+
+### Interpreting the output
+
+A successful `classify` (or `score`) prints four sections.
+
+**Headline**, accuracy of answered rows, colour-coded (green ≥ 90%,
+yellow ≥ 70%, red below).
+
+**Confusion matrix**, rows are the human label, columns are the model
+label. The diagonal is correct (green). Off-diagonal cells are mistakes
+(red when non-zero). A heavy off-diagonal row means the model has a bias
+toward one class for that ground truth.
+
+```
+  truth ╲ pred   CG   OR
+ ━━━━━━━━━━━━━━━━━━━━━━━━
+  CG              3    0
+  OR              1    1
+```
+
+**Classification report**, sklearn's per-class precision, recall, F1.
+
+- *Precision*: of rows the model labelled X, how many were actually X.
+- *Recall*: of rows humans labelled X, how many the model caught.
+- *F1*: harmonic mean of precision and recall.
+- *Support*: number of rows with that ground-truth label in the run.
+
+**Per-category accuracy**, match rate broken down by product category,
+sorted by row count. Useful for spotting categories where the prompt
+generalises poorly.
+
+**Unparseable note**, if any model responses could not be parsed into a
+label (first non-empty line was not `CG` or `OR`), a dim line is printed
+below the report with the count. These rows are excluded from all metrics.
+A high count usually means the prompt needs adjusting.
+
+## Tests
+
+`pytest` covers the dataset loader, prompt loader and generations archive,
+parser, fake provider, mock-backed Ollama provider, runner end-to-end, the
+scoring module, and the CLI shape.
+
+```bash
+poetry run pytest
+```
+
+Tests use stratified mini-fixtures and the `FakeProvider`, so the suite runs
+in under a second and needs no network or Ollama daemon.
 
 ## Acknowledgements
 

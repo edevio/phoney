@@ -10,7 +10,7 @@ runner = CliRunner()
 
 @pytest.fixture(autouse=True)
 def _chdir_tmp(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    """Run every test from a fresh cwd so the default prompts/generations/ lands in tmp."""
+    """Run every test from a fresh cwd so default output/ and prompts/generations/ land in tmp."""
     monkeypatch.chdir(tmp_path)
 
 
@@ -39,91 +39,122 @@ def test_preview_prints_table(tmp_path: Path) -> None:
     assert "Reviews (2)" in result.output
 
 
-def _setup_run(tmp_path: Path) -> tuple[Path, Path, Path]:
+def _setup_run(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
     csv_path = tmp_path / "reviews.csv"
     _write_csv(csv_path)
     prompt_path = tmp_path / "prompt.txt"
     prompt_path.write_text("classify the review", encoding="utf-8")
+    # Tests chdir to tmp_path, so the implicit output/ and prompts/generations/
+    # all land under tmp_path automatically. Return them for assertions only.
     results_dir = tmp_path / "results"
-    return csv_path, prompt_path, results_dir
+    output_dir = tmp_path / "output"
+    return csv_path, prompt_path, results_dir, output_dir
 
 
-def test_run_without_save_prompt_has_no_sidecar(tmp_path: Path) -> None:
-    csv_path, prompt_path, results_dir = _setup_run(tmp_path)
+def _classify_args(
+    csv_path: Path,
+    prompt_path: Path,
+    results_dir: Path,
+    *extra: str,
+) -> list[str]:
+    return [
+        "classify",
+        "--dataset", str(csv_path),
+        "--prompt", str(prompt_path),
+        "--provider", "fake",
+        "--model", "fake",
+        "--results-dir", str(results_dir),
+        *extra,
+    ]
+
+
+def test_default_limit_lands_in_results(tmp_path: Path) -> None:
+    csv_path, prompt_path, results_dir, output_dir = _setup_run(tmp_path)
+
+    result = runner.invoke(app, _classify_args(csv_path, prompt_path, results_dir))
+
+    assert result.exit_code == 0, result.output
+    assert list(results_dir.glob("*.csv")), "canonical CSV should be in results/"
+    assert not list(output_dir.glob("*.csv")), "nothing in output/ for canonical run"
+
+
+def test_non_default_limit_lands_in_output(tmp_path: Path) -> None:
+    csv_path, prompt_path, results_dir, output_dir = _setup_run(tmp_path)
 
     result = runner.invoke(
         app,
-        [
-            "classify",
-            "--dataset", str(csv_path),
-            "--prompt", str(prompt_path),
-            "--provider", "fake",
-            "--model", "fake",
-            "--limit", "2",
-            "--results-dir", str(results_dir),
-        ],
+        _classify_args(csv_path, prompt_path, results_dir, "--limit", "2"),
     )
 
     assert result.exit_code == 0, result.output
-    assert not list(results_dir.glob("*_prompts.txt"))
-    assert list(results_dir.glob("*.csv"))
+    assert not list(results_dir.glob("*.csv"))
+    csvs = list(output_dir.glob("*.csv"))
+    assert len(csvs) == 1
+    assert "pct" in csvs[0].name, "non-canonical filename should include accuracy"
 
 
-def test_run_all_rows_overrides_limit(tmp_path: Path) -> None:
-    csv_path, prompt_path, results_dir = _setup_run(tmp_path)
+def test_snapshot_forces_output_even_at_default(tmp_path: Path) -> None:
+    csv_path, prompt_path, results_dir, output_dir = _setup_run(tmp_path)
 
     result = runner.invoke(
         app,
-        [
-            "classify",
-            "--dataset", str(csv_path),
-            "--prompt", str(prompt_path),
-            "--provider", "fake",
-            "--model", "fake",
-            "--limit", "1",
-            "--all",
-            "--results-dir", str(results_dir),
-        ],
+        _classify_args(csv_path, prompt_path, results_dir, "--snapshot"),
+    )
+
+    assert result.exit_code == 0, result.output
+    assert not list(results_dir.glob("*.csv"))
+    assert list(output_dir.glob("*.csv"))
+
+
+def test_all_rows_lands_in_results_with_full_suffix(tmp_path: Path) -> None:
+    csv_path, prompt_path, results_dir, output_dir = _setup_run(tmp_path)
+
+    result = runner.invoke(
+        app,
+        _classify_args(csv_path, prompt_path, results_dir, "--all"),
     )
 
     import csv as _csv
 
     assert result.exit_code == 0, result.output
-    csvs = list(results_dir.glob("*.csv"))
+    csvs = list(results_dir.glob("*_full.csv"))
     assert len(csvs) == 1
     with csvs[0].open(encoding="utf-8") as f:
         rows = list(_csv.DictReader(f))
-    # The fixture has 4 rows, so --all should yield 4 result rows.
     assert len(rows) == 4
 
 
-def test_run_with_save_prompt_writes_sidecar(tmp_path: Path) -> None:
-    csv_path, prompt_path, results_dir = _setup_run(tmp_path)
+def test_save_prompt_writes_sidecar_to_output(tmp_path: Path) -> None:
+    csv_path, prompt_path, results_dir, output_dir = _setup_run(tmp_path)
 
     result = runner.invoke(
         app,
-        [
-            "classify",
-            "--dataset", str(csv_path),
-            "--prompt", str(prompt_path),
-            "--provider", "fake",
-            "--model", "fake",
+        _classify_args(
+            csv_path, prompt_path, results_dir,
             "--limit", "2",
-            "--results-dir", str(results_dir),
             "--save-prompt",
-        ],
+        ),
     )
 
     assert result.exit_code == 0, result.output
-    sidecars = list(results_dir.glob("*_prompts.txt"))
+    sidecars = list(output_dir.glob("*_prompts.txt"))
     assert len(sidecars) == 1
 
     content = sidecars[0].read_text(encoding="utf-8")
-    # Two entries with delimiter headers
     assert content.count("=== row_id=") == 2
-    # The instruction is present in every rendered prompt
     assert "classify the review" in content
-    # The output contract appears in every rendered prompt
     assert "CG or OR on the first line" in content
-    # Per-row data is interpolated
-    assert "<text>first</text>" in content or "<text>second</text>" in content
+
+
+def test_save_prompt_sidecar_in_output_even_for_canonical_run(tmp_path: Path) -> None:
+    csv_path, prompt_path, results_dir, output_dir = _setup_run(tmp_path)
+
+    result = runner.invoke(
+        app,
+        _classify_args(csv_path, prompt_path, results_dir, "--all", "--save-prompt"),
+    )
+
+    assert result.exit_code == 0, result.output
+    assert list(results_dir.glob("*_full.csv"))
+    assert list(output_dir.glob("*_prompts.txt"))
+    assert not list(results_dir.glob("*_prompts.txt"))

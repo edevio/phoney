@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 
 import typer
@@ -6,7 +7,14 @@ from rich.table import Table
 
 from .dataset import DEFAULT_SEED, load_reviews
 from .models import Review
-from .paths import result_path
+from .paths import (
+    DEFAULT_LIMIT,
+    canonical_csv_path,
+    is_canonical_run,
+    output_csv_path,
+    output_stem,
+    sidecar_path,
+)
 from .prompt import load_or_resolve_prompt
 from .providers.base import Provider
 from .providers.fake import FakeProvider
@@ -22,6 +30,7 @@ DEFAULT_DATASET = Path("data/fake-reviews-dataset.csv")
 DEFAULT_PROMPT = Path("prompts/prompt.txt")
 DEFAULT_GENERATIONS_DIR = Path("prompts/generations")
 DEFAULT_RESULTS_DIR = Path("results")
+DEFAULT_OUTPUT_DIR = Path("output")
 PREVIEW_TEXT_CHARS = 120
 
 
@@ -78,18 +87,23 @@ def classify(
     dataset: Path = typer.Option(DEFAULT_DATASET, help="Path to the source CSV."),
     provider: str = typer.Option("ollama", help="Provider name (fake, ollama)."),
     model: str = typer.Option("qwen3:14b", help="Model identifier."),
-    limit: int = typer.Option(200, min=1, help="Number of rows to sample."),
+    limit: int = typer.Option(DEFAULT_LIMIT, min=1, help="Number of rows to sample."),
     all_rows: bool = typer.Option(
         False,
         "--all",
         help="Run against every row in the dataset; overrides --limit.",
     ),
+    snapshot: bool = typer.Option(
+        False,
+        "--snapshot",
+        help="Force this run into output/ even when it would otherwise be canonical.",
+    ),
     seed: int = typer.Option(DEFAULT_SEED, help="Sampling seed."),
-    results_dir: Path = typer.Option(DEFAULT_RESULTS_DIR, help="Results directory."),
+    results_dir: Path = typer.Option(DEFAULT_RESULTS_DIR, help="Canonical results directory."),
     save_prompt: bool = typer.Option(
         False,
         "--save-prompt",
-        help="Also write every rendered prompt to a sidecar file.",
+        help="Also write every rendered prompt to a sidecar file in output/.",
     ),
     verbose: bool = typer.Option(
         False, "--verbose", help="Also print misclassified rows after scoring."
@@ -111,7 +125,14 @@ def classify(
             f"{DEFAULT_GENERATIONS_DIR}/{prompt_digest}.txt"
         )
 
-    output_path = result_path(model, prompt_digest, results_dir)
+    canonical = is_canonical_run(limit, all_rows, snapshot)
+    timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+    stem = output_stem(model, prompt_digest, limit, all_rows, timestamp)
+
+    if canonical:
+        initial_path = canonical_csv_path(model, prompt_digest, all_rows, results_dir)
+    else:
+        initial_path = output_csv_path(stem, None, DEFAULT_OUTPUT_DIR)
 
     sample_limit = None if all_rows else limit
     reviews = load_reviews(dataset, limit=sample_limit, seed=seed)
@@ -128,18 +149,28 @@ def classify(
         reviews,
         instruction=instruction,
         provider=provider_impl,
-        output_path=output_path,
+        output_path=initial_path,
         total=len(reviews),
         console=console,
         on_prompt=on_prompt,
     )
+
+    scores = compute_scores(load_results(written))
+
+    if not canonical:
+        final_path = output_csv_path(stem, scores.accuracy, DEFAULT_OUTPUT_DIR)
+        written.rename(final_path)
+        written = final_path
+
     console.print(f"[green]Wrote {len(reviews)} rows to[/green] {written}")
 
     if save_prompt:
-        sidecar = write_prompts_sidecar(written, collected, model, prompt_digest)
+        sidecar = write_prompts_sidecar(
+            sidecar_path(stem, DEFAULT_OUTPUT_DIR), collected, model, prompt_digest
+        )
         console.print(f"[green]Saved prompts to[/green] {sidecar}")
 
-    render_scores(compute_scores(load_results(written)), console, verbose=verbose)
+    render_scores(scores, console, verbose=verbose)
 
 
 @app.command()
@@ -153,13 +184,13 @@ def score(
 
 
 def write_prompts_sidecar(
-    csv_path: Path,
+    sidecar: Path,
     entries: list[tuple[Review, str]],
     model: str,
     prompt_digest: str,
 ) -> Path:
     """Write every rendered prompt to one file, one entry per row."""
-    sidecar = csv_path.with_name(f"{csv_path.stem}_prompts.txt")
+    sidecar.parent.mkdir(parents=True, exist_ok=True)
     with sidecar.open("w", encoding="utf-8") as f:
         for i, (review, rendered) in enumerate(entries):
             if i > 0:

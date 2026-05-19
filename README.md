@@ -64,9 +64,10 @@ poetry run phoney classify --provider fake --model fake --limit 10
 | `--hash` | 8-char prompt hash from `prompts/generations/`. Overrides `--prompt`. Fails immediately if the hash is not in the archive. |
 | `--limit` | Sample size, default 200. Stratified by label. |
 | `--all` | Run every row in the dataset. Overrides `--limit`. |
+| `--snapshot` | Force this run into `output/` even when it would otherwise be a canonical baseline. |
 | `--seed` | Sampling seed, default 42. Same seed gives the same rows. |
-| `--results-dir` | Where to write the results CSV. Default `results/`. |
-| `--save-prompt` | Also write every rendered prompt to `results/<model>_<hash>_prompts.txt`. |
+| `--results-dir` | Canonical baseline directory. Default `results/`. |
+| `--save-prompt` | Also write every rendered prompt to a sidecar in `output/`. |
 | `--verbose` | After scoring, also print a table of misclassified rows. |
 
 ### `score` flags
@@ -103,17 +104,49 @@ Flow:
 Each results CSV's filename embeds the same hash, so a `results/...csv` and a
 `prompts/generations/<hash>.txt` always pair up.
 
-### Result filenames
+### Result filenames and where runs land
 
-```
-results/<model>_<prompt-hash>.csv                 # predictions
-results/<model>_<prompt-hash>_prompts.txt         # only with --save-prompt
-```
+Two directories with different lifecycles.
+
+**`results/`, canonical baselines (committed).** One file per
+`(model, prompt_hash, scope)` shape. Overwritten on each canonical run.
+Anyone with the repo gets the same `results/` content for free.
+
+**`output/`, versioned, non-canonical runs (gitignored).** Verbose
+filenames so multiple runs of the same shape coexist without clobbering.
+Includes the timestamp and final accuracy in the filename.
+
+Routing rules:
+
+| Run kind | Destination |
+|---|---|
+| Default (`--limit 200`), no `--snapshot` | `results/<model>_<hash>.csv` (overwrites) |
+| `--all`, no `--snapshot` | `results/<model>_<hash>_full.csv` (overwrites) |
+| Any other `--limit` (e.g. 50, 1000) | `output/run_<model>_<hash>_<ts>_limit_<N>_<acc>pct.csv` |
+| `--snapshot` (any limit) | `output/run_..._<acc>pct.csv` |
+| `--save-prompt` sidecar | Always `output/run_..._prompts.txt` regardless of CSV destination |
+
+Why 200 is canonical: full runs on a local model take days. 200 is the
+working sample size used during iteration. Treating it as the reference
+shape means `phoney classify` (no flags) writes a baseline you can compare
+against, every time.
+
+Filename components:
 
 | Component | Description |
 |---|---|
-| `<model>` | Model identifier, with `/` and `:` replaced by `_`. e.g. `qwen3_14b`. |
-| `<prompt-hash>` | First 8 hex chars of the prompt file's SHA-256. |
+| `<model>` | Model identifier with `/` and `:` replaced by `_`, e.g. `qwen3_14b`. |
+| `<hash>` | First 8 hex chars of the prompt file's SHA-256. |
+| `<ts>` | Run timestamp in `YYYYMMDDThhmmss` format (output filenames only). |
+| `_limit_<N>` | Sample size when run was non-canonical (output only). |
+| `_full` | Present when `--all` was used. |
+| `_<acc>pct` | Final accuracy rounded to whole percent (output only). |
+
+Examples:
+
+- `results/qwen3_14b_3540c00f.csv`, canonical 200-row baseline for `qwen3:14b` + prompt `3540c00f`.
+- `results/qwen3_14b_3540c00f_full.csv`, canonical full-dataset baseline.
+- `output/run_qwen3_14b_3540c00f_20260520T160731_limit_50_54pct.csv`, a 50-row exploration run at 54% accuracy.
 
 To verify a prompt hash manually:
 
@@ -142,9 +175,13 @@ One row per classified review, in the order they were sampled.
 ### Save-prompt sidecar format
 
 When `--save-prompt` is passed, every rendered prompt is written to
-`results/<model>_<prompt-hash>_prompts.txt`, one entry per row, in the same
-order as the CSV. Each entry has a header line followed by the full prompt
-the model received:
+`output/run_<model>_<hash>_<ts>_<scope>_prompts.txt`, one entry per row, in
+the same order as the CSV. Sidecars always live in `output/` even when the
+CSV is canonical, the rendered prompt is reconstructable from the
+generations archive and the dataset, so this is debugging context, not part
+of the canonical baseline.
+
+Each entry has a header line followed by the full prompt the model received:
 
 ```
 === row_id=14632 category=Movies_and_TV_5 true_label=OR model=qwen3:14b hash=3540c00f ===

@@ -6,8 +6,6 @@ from phoney.prompt import (
     HASH_LENGTH,
     load_or_resolve_prompt,
     load_prompt,
-    result_path,
-    sanitise_model,
     save_prompt_generation,
 )
 
@@ -35,16 +33,6 @@ def test_load_prompt_hash_changes_with_content(tmp_path: Path) -> None:
     _, a = load_prompt(_write(tmp_path / "a.txt", "one"))
     _, b = load_prompt(_write(tmp_path / "b.txt", "two"))
     assert a != b
-
-
-def test_sanitise_model_replaces_slash_and_colon() -> None:
-    assert sanitise_model("qwen3:14b") == "qwen3_14b"
-    assert sanitise_model("org/model:tag") == "org_model_tag"
-
-
-def test_result_path_combines_model_and_hash(tmp_path: Path) -> None:
-    p = result_path("qwen3:14b", "abcdef12", tmp_path)
-    assert p == tmp_path / "qwen3_14b_abcdef12.csv"
 
 
 def test_save_prompt_generation_writes_file(tmp_path: Path) -> None:

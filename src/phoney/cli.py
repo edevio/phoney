@@ -6,7 +6,8 @@ from rich.table import Table
 
 from .dataset import DEFAULT_SEED, load_reviews
 from .models import Review
-from .prompt import load_or_resolve_prompt, result_path
+from .paths import result_path
+from .prompt import load_or_resolve_prompt
 from .providers.base import Provider
 from .providers.fake import FakeProvider
 from .providers.ollama import OllamaProvider

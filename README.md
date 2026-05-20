@@ -65,7 +65,7 @@ Results vary between runs on the same data and the same prompt. The model
 itself is not inherently random. The randomness comes from sampling and
 from the inference stack:
 
-- **Sampling.** The default temperature is `0.2`, set in `OllamaProvider`.
+- **Sampling.** The default temperature is `0.0`, set in `OllamaProvider`.
   Above zero, the model can pick a non-top token, which sometimes flips
   the predicted label on borderline reviews.
 - **The inference stack.** Even at temperature 0, GPU floating-point
@@ -78,8 +78,9 @@ from the inference stack:
   movements between runs are unavoidable.
 
 In practice, a single fixed canonical *number* for a given model and
-prompt cannot be pinned down, particularly at the project default of
-`temperature=0.2`. Read the committed baselines in `results/` as the score
+prompt cannot be pinned down, even at the project default of
+`temperature=0.0`, because the inference-stack sources of variance above
+still apply. Read the committed baselines in `results/` as the score
 for that model and prompt on the run that produced the file, not as a
 fixed figure. A few points of drift between runs on a 100-row sample is
 noise. Larger movements, or a consistent shift across several re-runs,

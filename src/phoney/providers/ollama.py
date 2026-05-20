@@ -11,7 +11,7 @@ class OllamaProvider:
     Assumes the Ollama daemon is running on the host and the model is pulled.
     """
 
-    def __init__(self, model: str, host: str | None = None, temperature: float = 0.2) -> None:
+    def __init__(self, model: str, host: str | None = None, temperature: float = 0.0) -> None:
         self.name = "ollama"
         self.model = model
         self.temperature = temperature

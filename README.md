@@ -85,6 +85,59 @@ fixed figure. A few points of drift between runs on a 100-row sample is
 noise. Larger movements, or a consistent shift across several re-runs,
 are worth a look.
 
+## Sample output
+
+A 100-row baseline run prints something like this at the end (colour stripped
+for the README). See [Interpreting the output](#interpreting-the-output) for
+what each section means.
+
+```
+       Headline
+  Metric       Value
+ ━━━━━━━━━━━━━━━━━━━━
+  Accuracy     60.6%
+  Correct    57 / 94
+
+     Confusion matrix
+  truth ╲ pred   CG   OR
+ ━━━━━━━━━━━━━━━━━━━━━━━━
+  CG             10   35
+  OR              2   47
+
+╭──────────────── Classification report ────────────────╮
+│               precision    recall  f1-score   support │
+│                                                       │
+│           CG       0.83      0.22      0.35        45 │
+│           OR       0.57      0.96      0.72        49 │
+│                                                       │
+│     accuracy                           0.61        94 │
+│    macro avg       0.70      0.59      0.53        94 │
+│ weighted avg       0.70      0.61      0.54        94 │
+╰───────────────────────────────────────────────────────╯
+
+               Per-category accuracy
+  Category                       Accuracy   Count
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Movies_and_TV_5                   85.7%      14
+  Tools_and_Home_Improvement_5      71.4%      14
+  Sports_and_Outdoors_5             46.2%      13
+  Electronics_5                     66.7%       9
+  Home_and_Kitchen_5                44.4%       9
+  Clothing_Shoes_and_Jewelry_5      37.5%       8
+  Kindle_Store_5                    75.0%       8
+  Pet_Supplies_5                    57.1%       7
+  Books_5                           66.7%       6
+  Toys_and_Games_5                  33.3%       6
+
+Note: 6 of 100 rows had unparseable responses and were not scored.
+```
+
+This is a real run of `qwen3:14b` against prompt `60e22de7` on the default
+100-row sample. Of 100 rows, 94 returned a parseable label and 57 of those
+matched the human label. The confusion matrix shows the model leans
+heavily towards `OR` (only 12 rows predicted as `CG`), so recall on `CG` is
+low at 0.22 despite precision being reasonable at 0.83.
+
 ## Commands
 
 All commands go through the `phoney` CLI.

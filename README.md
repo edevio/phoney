@@ -1,4 +1,4 @@
-# PHONEY (a fake review classifier)
+# PHONEY
 
 **P**inpointing **H**ollow **O**pinions **N**ot **E**arnestly **Y**ielded. ;-)
 

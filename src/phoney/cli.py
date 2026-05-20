@@ -3,7 +3,6 @@ from pathlib import Path
 
 import typer
 from rich.console import Console
-from rich.table import Table
 
 from .dataset import DEFAULT_SEED, load_reviews
 from .models import Review
@@ -31,30 +30,11 @@ DEFAULT_PROMPT = Path("prompts/prompt.txt")
 DEFAULT_GENERATIONS_DIR = Path("prompts/generations")
 DEFAULT_RESULTS_DIR = Path("results")
 DEFAULT_OUTPUT_DIR = Path("output")
-PREVIEW_TEXT_CHARS = 120
 
 
 @app.callback()
 def _root() -> None:
     """Keeps subcommands explicit even when only one exists."""
-
-
-def build_preview_table(reviews: list[Review]) -> Table:
-    table = Table(title=f"Reviews ({len(reviews)})", show_lines=False)
-    table.add_column("row_id", justify="right", style="cyan")
-    table.add_column("category", style="magenta")
-    table.add_column("rating", justify="right")
-    table.add_column("label", style="green")
-    table.add_column("text")
-
-    for r in reviews:
-        text = (
-            r.text
-            if len(r.text) <= PREVIEW_TEXT_CHARS
-            else r.text[: PREVIEW_TEXT_CHARS - 1] + "…"
-        )
-        table.add_row(str(r.row_id), r.category, f"{r.rating:g}", r.label, text)
-    return table
 
 
 def get_provider(name: str, model: str) -> Provider:
@@ -63,17 +43,6 @@ def get_provider(name: str, model: str) -> Provider:
     if name == "ollama":
         return OllamaProvider(model=model)
     raise typer.BadParameter(f"Unknown provider: {name}")
-
-
-@app.command()
-def preview(
-    dataset: Path = typer.Option(DEFAULT_DATASET, help="Path to the source CSV."),
-    limit: int = typer.Option(10, min=1, help="Number of rows to sample."),
-    seed: int = typer.Option(DEFAULT_SEED, help="Sampling seed."),
-) -> None:
-    """Sample rows from the dataset and print them as a Rich table."""
-    reviews = load_reviews(dataset, limit=limit, seed=seed)
-    console.print(build_preview_table(reviews))
 
 
 @app.command()
@@ -99,7 +68,6 @@ def classify(
         help="Force this run into output/ even when it would otherwise be canonical.",
     ),
     seed: int = typer.Option(DEFAULT_SEED, help="Sampling seed."),
-    results_dir: Path = typer.Option(DEFAULT_RESULTS_DIR, help="Canonical results directory."),
     save_prompt: bool = typer.Option(
         False,
         "--save-prompt",
@@ -130,7 +98,7 @@ def classify(
     stem = output_stem(model, prompt_digest, limit, all_rows, timestamp)
 
     if canonical:
-        initial_path = canonical_csv_path(model, prompt_digest, all_rows, results_dir)
+        initial_path = canonical_csv_path(model, prompt_digest, all_rows, DEFAULT_RESULTS_DIR)
     else:
         initial_path = output_csv_path(stem, None, DEFAULT_OUTPUT_DIR)
 

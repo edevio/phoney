@@ -64,11 +64,8 @@ OLLAMA_HOST=http://192.168.1.10:11434 poetry run phoney classify --model qwen3:1
 All commands go through the `phoney` CLI.
 
 ```bash
-# Look at a few rows from the dataset
-poetry run phoney preview --limit 10 --seed 42
-
 # Classify a sample; scores are printed automatically when the run completes
-poetry run phoney classify --provider ollama --model qwen3:14b --limit 200
+poetry run phoney classify --provider ollama --model qwen3:14b --limit 17
 
 # Run against the entire dataset
 poetry run phoney classify --provider ollama --model qwen3:14b --all
@@ -95,7 +92,6 @@ poetry run phoney classify --provider fake --model fake --limit 10
 | `--all` | Run every row in the dataset. Overrides `--limit`. |
 | `--snapshot` | Force this run into `output/` even when it would otherwise be a canonical baseline. |
 | `--seed` | Sampling seed, default 42. Same seed gives the same rows. |
-| `--results-dir` | Canonical baseline directory. Default `results/`. |
 | `--save-prompt` | Also write every rendered prompt to a sidecar in `output/`. |
 | `--verbose` | After scoring, also print a table of misclassified rows. |
 
@@ -108,7 +104,7 @@ poetry run phoney classify --provider fake --model fake --limit 10
 
 ## Canonical runs (baselines)
 
-A **canonical run**, also called a **baseline** or **reference baseline** ,
+A **canonical run** (also called a **baseline** or **reference baseline**)
 is the current "best known" output for a particular model + prompt combination
 on this repo. Its results CSV is committed to `results/` so anyone with the
 repo sees the same numbers without re-running the model.
@@ -131,7 +127,7 @@ latest run for that shape.
   `phoney classify` again, diff the new baseline against the old one. The
   prompt hash in the filename makes pairs obvious.
 - **Regression detection.** A baseline at 78% accuracy that drops to 71% on
-  re-run is a real signal, same data, same seed, same model, only the
+  re-run is a real signal: same data, same seed, same model, only the
   prompt changed.
 - **Sharing.** Collaborators clone the repo and immediately have something
   scorable. They don't need GPU/CPU budget to see what the prompt does.
@@ -165,7 +161,7 @@ automatically, it isn't a baseline.
 
 ### When to update a baseline
 
-- After editing `prompts/prompt.txt`, the new prompt hash means a new
+- After editing `prompts/prompt.txt`. The new prompt hash means a new
   baseline file anyway, so just re-run.
 - After switching the default model.
 - After a dataset change.
@@ -212,11 +208,11 @@ Each results CSV's filename embeds the same hash, so a `results/...csv` and a
 
 Two directories with different lifecycles.
 
-**`results/`, canonical baselines (committed).** One file per
+**`results/`: canonical baselines (committed).** One file per
 `(model, prompt_hash, scope)` shape. Overwritten on each canonical run.
 Anyone with the repo gets the same `results/` content for free.
 
-**`output/`, versioned, non-canonical runs (gitignored).** Verbose
+**`output/`: versioned, non-canonical runs (gitignored).** Verbose
 filenames so multiple runs of the same shape coexist without clobbering.
 Includes the timestamp and final accuracy in the filename.
 
@@ -248,9 +244,9 @@ Filename components:
 
 Examples:
 
-- `results/qwen3_14b_3540c00f.csv`, canonical 200-row baseline for `qwen3:14b` + prompt `3540c00f`.
-- `results/qwen3_14b_3540c00f_full.csv`, canonical full-dataset baseline.
-- `output/run_qwen3_14b_3540c00f_20260520T160731_limit_50_54pct.csv`, a 50-row exploration run at 54% accuracy.
+- `results/qwen3_14b_3540c00f.csv`: canonical 200-row baseline for `qwen3:14b` + prompt `3540c00f`.
+- `results/qwen3_14b_3540c00f_full.csv`: canonical full-dataset baseline.
+- `output/run_qwen3_14b_3540c00f_20260520T160731_limit_50_54pct.csv`: a 50-row exploration run at 54% accuracy.
 
 To verify a prompt hash manually:
 
@@ -281,7 +277,7 @@ One row per classified review, in the order they were sampled.
 When `--save-prompt` is passed, every rendered prompt is written to
 `output/run_<model>_<hash>_<ts>_<scope>_prompts.txt`, one entry per row, in
 the same order as the CSV. Sidecars always live in `output/` even when the
-CSV is canonical, the rendered prompt is reconstructable from the
+CSV is canonical. The rendered prompt is reconstructable from the
 generations archive and the dataset, so this is debugging context, not part
 of the canonical baseline.
 
@@ -299,10 +295,10 @@ Each entry has a header line followed by the full prompt the model received:
 
 A successful `classify` (or `score`) prints four sections.
 
-**Headline**, accuracy of answered rows, colour-coded (green ≥ 90%,
+**Headline.** Accuracy of answered rows, colour-coded (green ≥ 90%,
 yellow ≥ 70%, red below).
 
-**Confusion matrix**, rows are the human label, columns are the model
+**Confusion matrix.** Rows are the human label, columns are the model
 label. The diagonal is correct (green). Off-diagonal cells are mistakes
 (red when non-zero). A heavy off-diagonal row means the model has a bias
 toward one class for that ground truth.
@@ -314,18 +310,18 @@ toward one class for that ground truth.
   OR              1    1
 ```
 
-**Classification report**, sklearn's per-class precision, recall, F1.
+**Classification report.** sklearn's per-class precision, recall, F1.
 
 - *Precision*: of rows the model labelled X, how many were actually X.
 - *Recall*: of rows humans labelled X, how many the model caught.
 - *F1*: harmonic mean of precision and recall.
 - *Support*: number of rows with that ground-truth label in the run.
 
-**Per-category accuracy**, match rate broken down by product category,
+**Per-category accuracy.** Match rate broken down by product category,
 sorted by row count. Useful for spotting categories where the prompt
 generalises poorly.
 
-**Unparseable note**, if any model responses could not be parsed into a
+**Unparseable note.** If any model responses could not be parsed into a
 label (first non-empty line was not `CG` or `OR`), a dim line is printed
 below the report with the count. These rows are excluded from all metrics.
 A high count usually means the prompt needs adjusting.

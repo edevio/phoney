@@ -25,20 +25,6 @@ def _write_csv(path: Path) -> None:
     )
 
 
-def test_preview_prints_table(tmp_path: Path) -> None:
-    csv_path = tmp_path / "reviews.csv"
-    _write_csv(csv_path)
-
-    result = runner.invoke(
-        app, ["preview", "--dataset", str(csv_path), "--limit", "2"]
-    )
-
-    assert result.exit_code == 0, result.output
-    assert "row_id" in result.output
-    assert "category" in result.output
-    assert "Reviews (2)" in result.output
-
-
 def _setup_run(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
     csv_path = tmp_path / "reviews.csv"
     _write_csv(csv_path)
@@ -54,7 +40,6 @@ def _setup_run(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
 def _classify_args(
     csv_path: Path,
     prompt_path: Path,
-    results_dir: Path,
     *extra: str,
 ) -> list[str]:
     return [
@@ -63,7 +48,6 @@ def _classify_args(
         "--prompt", str(prompt_path),
         "--provider", "fake",
         "--model", "fake",
-        "--results-dir", str(results_dir),
         *extra,
     ]
 
@@ -71,7 +55,7 @@ def _classify_args(
 def test_default_limit_lands_in_results(tmp_path: Path) -> None:
     csv_path, prompt_path, results_dir, output_dir = _setup_run(tmp_path)
 
-    result = runner.invoke(app, _classify_args(csv_path, prompt_path, results_dir))
+    result = runner.invoke(app, _classify_args(csv_path, prompt_path))
 
     assert result.exit_code == 0, result.output
     assert list(results_dir.glob("*.csv")), "canonical CSV should be in results/"
@@ -83,7 +67,7 @@ def test_non_default_limit_lands_in_output(tmp_path: Path) -> None:
 
     result = runner.invoke(
         app,
-        _classify_args(csv_path, prompt_path, results_dir, "--limit", "2"),
+        _classify_args(csv_path, prompt_path, "--limit", "2"),
     )
 
     assert result.exit_code == 0, result.output
@@ -98,7 +82,7 @@ def test_snapshot_forces_output_even_at_default(tmp_path: Path) -> None:
 
     result = runner.invoke(
         app,
-        _classify_args(csv_path, prompt_path, results_dir, "--snapshot"),
+        _classify_args(csv_path, prompt_path, "--snapshot"),
     )
 
     assert result.exit_code == 0, result.output
@@ -111,7 +95,7 @@ def test_all_rows_lands_in_results_with_full_suffix(tmp_path: Path) -> None:
 
     result = runner.invoke(
         app,
-        _classify_args(csv_path, prompt_path, results_dir, "--all"),
+        _classify_args(csv_path, prompt_path, "--all"),
     )
 
     import csv as _csv
@@ -130,7 +114,7 @@ def test_save_prompt_writes_sidecar_to_output(tmp_path: Path) -> None:
     result = runner.invoke(
         app,
         _classify_args(
-            csv_path, prompt_path, results_dir,
+            csv_path, prompt_path,
             "--limit", "2",
             "--save-prompt",
         ),
@@ -151,7 +135,7 @@ def test_save_prompt_sidecar_in_output_even_for_canonical_run(tmp_path: Path) ->
 
     result = runner.invoke(
         app,
-        _classify_args(csv_path, prompt_path, results_dir, "--all", "--save-prompt"),
+        _classify_args(csv_path, prompt_path, "--all", "--save-prompt"),
     )
 
     assert result.exit_code == 0, result.output

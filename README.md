@@ -59,6 +59,32 @@ before running:
 OLLAMA_HOST=http://192.168.1.10:11434 poetry run phoney classify --model qwen3:14b
 ```
 
+## Run-to-run variance
+
+Results vary between runs on the same data and the same prompt. The model
+itself is not inherently random. The randomness comes from sampling and
+from the inference stack:
+
+- **Sampling.** The default temperature is `0.2`, set in `OllamaProvider`.
+  Above zero, the model can pick a non-top token, which sometimes flips
+  the predicted label on borderline reviews.
+- **The inference stack.** Even at temperature 0, GPU floating-point
+  reduction order, batching, and kv-cache state mean outputs are not
+  bit-exact between runs. Hosted APIs also route across replicas and ship
+  silent model updates. Local Ollama avoids those two, not the rest.
+- **Classification is sensitive to this.** A close call between tokens at
+  the `CG`/`OR` decision point becomes a full label flip in the CSV. On a
+  100-row sample, one flip is one percentage point of accuracy, so small
+  movements between runs are unavoidable.
+
+In practice, a single fixed canonical *number* for a given model and
+prompt cannot be pinned down, particularly at the project default of
+`temperature=0.2`. Read the committed baselines in `results/` as the score
+for that model and prompt on the run that produced the file, not as a
+fixed figure. A few points of drift between runs on a 100-row sample is
+noise. Larger movements, or a consistent shift across several re-runs,
+are worth a look.
+
 ## Commands
 
 All commands go through the `phoney` CLI.

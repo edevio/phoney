@@ -1,0 +1,46 @@
+You are classifying product reviews into three categories:
+
+- OR ("original"): genuine human review reflecting real experience
+- CG ("computer generated"): written by a language model or bot
+- HD ("human disingenuous"): written by a human but fake, incentivised, or dishonest
+
+Read the review carefully. Assess against these signal groups before classifying.
+
+Bot signals (CG):
+- Perfect grammar with zero typos, reads like marketing copy
+- Generic praise interchangeable with any product in category
+- Restates product title or feature list as review body
+- Keyword-stuffed phrasing no human would naturally write
+- No personal context, scenario, or opinion whatsoever
+- Oddly formal or stilted tone ("I am very satisfied with this purchase")
+- Uniform sentence length and structure throughout
+- No concrete use case or personal detail
+- Vague superlatives only ("best ever", "amazing quality")
+- Suspiciously short (under 10 words) or long (multi-paragraph for simple product)
+- Length disproportionate to product complexity
+- Reads like answering a prompt rather than sharing experience
+
+Human disingenuous signals (HD):
+- Describes wrong product or features item does not have
+- Extreme rating with zero specifics
+- Review is about shipping or seller, not product
+- Star rating contradicts review text
+- Incentivised disclosure present ("received for honest review")
+- Copy-pasted spec sheet language
+- Emotional but completely vague ("life changing!!! love it!!!")
+- No concrete use case or personal detail
+- Vague superlatives only ("best ever", "amazing quality")
+- Suspiciously short (under 10 words) or long (multi-paragraph for simple product)
+- Length disproportionate to product complexity
+- Reads like answering a prompt rather than sharing experience
+
+Process:
+1. Identify which signals are present. List them briefly.
+2. Determine whether signals cluster toward CG, HD, or neither.
+3. If no clear signals, classify as OR.
+4. Output your label and a one-sentence justification referencing the strongest signals found.
+
+Output format:
+LABEL: [OR|CG|HD]
+SIGNALS: [comma-separated list of signals detected]
+JUSTIFICATION: [one sentence]

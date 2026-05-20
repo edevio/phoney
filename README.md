@@ -12,7 +12,15 @@ be dropped in behind the same interface.
 
 ## Getting started
 
-Requires Python 3.14 and [Poetry](https://python-poetry.org/).
+### Requirements
+
+- Python 3.14
+- [Poetry](https://python-poetry.org/)
+- [Ollama](https://ollama.com/) running locally, with at least one model
+  pulled (e.g. `ollama pull qwen3:14b`). The fake provider works offline
+  without Ollama for plumbing checks.
+
+### Steps
 
 1. Install dependencies:
 
@@ -24,11 +32,32 @@ Requires Python 3.14 and [Poetry](https://python-poetry.org/).
    `data/fake-reviews-dataset.csv`. The repository does not redistribute the
    dataset.
 
-3. Run the tests to confirm everything is wired up:
+3. Make sure the Ollama daemon is running and the model you want is pulled:
+
+   ```
+   ollama serve &           # if not already running as a service
+   ollama pull qwen3:14b    # or whichever model you want as default
+   ollama list              # verify it shows up
+   ```
+
+4. Run the tests to confirm everything is wired up:
 
    ```
    poetry run pytest
    ```
+
+### How the Ollama connection works
+
+The Ollama provider talks to the local daemon over HTTP. By default it
+reads the `OLLAMA_HOST` environment variable if set, otherwise falls back
+to `http://127.0.0.1:11434`. No network calls leave the machine.
+
+If your daemon listens on a different host or port, set `OLLAMA_HOST`
+before running:
+
+```
+OLLAMA_HOST=http://192.168.1.10:11434 poetry run phoney classify --model qwen3:14b
+```
 
 ## Commands
 

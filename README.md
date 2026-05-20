@@ -106,6 +106,81 @@ poetry run phoney classify --provider fake --model fake --limit 10
 | (positional) | Path to a results CSV produced by `phoney classify`. |
 | `--verbose` | Also print misclassified rows. |
 
+## Canonical runs (baselines)
+
+A **canonical run**, also called a **baseline** or **reference baseline** ,
+is the current "best known" output for a particular model + prompt combination
+on this repo. Its results CSV is committed to `results/` so anyone with the
+repo sees the same numbers without re-running the model.
+
+Two flavours:
+
+| Flavour | Filename | When |
+|---|---|---|
+| Default sample baseline | `results/<model>_<hash>.csv` | `phoney classify` (200 stratified rows) |
+| Full-dataset baseline | `results/<model>_<hash>_full.csv` | `phoney classify --all` |
+
+Both overwrite their existing file on re-run. The baseline is always the
+latest run for that shape.
+
+### Why baselines matter
+
+- **Reproducibility.** Months later, you can see exactly how `qwen3:14b`
+  scored against prompt `3540c00f` without spinning the model up again.
+- **Comparison across prompt iterations.** Edit `prompts/prompt.txt`, run
+  `phoney classify` again, diff the new baseline against the old one. The
+  prompt hash in the filename makes pairs obvious.
+- **Regression detection.** A baseline at 78% accuracy that drops to 71% on
+  re-run is a real signal, same data, same seed, same model, only the
+  prompt changed.
+- **Sharing.** Collaborators clone the repo and immediately have something
+  scorable. They don't need GPU/CPU budget to see what the prompt does.
+
+### How to produce a baseline
+
+```bash
+# Default 200-row baseline
+poetry run phoney classify --provider ollama --model qwen3:14b
+
+# Full 40k-row baseline (takes hours)
+poetry run phoney classify --provider ollama --model qwen3:14b --all
+```
+
+Each writes to `results/<model>_<hash>[_full].csv` and commits to git like
+any other change. The score is printed at the end of the run; `phoney score
+<path>` re-prints it later.
+
+### What does NOT become a baseline
+
+These all route to `output/` (gitignored) so the canonical `results/`
+directory stays clean:
+
+- Any `--limit` that is not 200 (e.g. quick 20-row checks)
+- Any run with `--snapshot` (forces output even for a default sample)
+- The `--save-prompt` sidecar (always in `output/`, even when the CSV is
+  canonical)
+
+Don't move files into `results/` by hand. If a run wasn't routed there
+automatically, it isn't a baseline.
+
+### When to update a baseline
+
+- After editing `prompts/prompt.txt`, the new prompt hash means a new
+  baseline file anyway, so just re-run.
+- After switching the default model.
+- After a dataset change.
+- **Not** after every exploratory tweak. For "I just want to see what this
+  prompt does" runs, use `--snapshot` or a non-default `--limit` so you
+  don't churn the baseline.
+
+### Pairing with the prompt generations archive
+
+A baseline CSV at `results/qwen3_14b_3540c00f.csv` always has a paired
+prompt at `prompts/generations/3540c00f.txt`. Both are content-addressed by
+the same hash, both are committed to git. Together they make the run fully
+reproducible: the input (prompt + dataset rows by seed) and the output
+(predictions) are preserved permanently.
+
 ## Reference
 
 ### Prompt generations archive

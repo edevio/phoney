@@ -1,6 +1,6 @@
 from pathlib import Path
 
-DEFAULT_LIMIT = 200
+DEFAULT_LIMIT = 100
 
 
 def sanitise_model(name: str) -> str:

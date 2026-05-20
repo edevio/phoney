@@ -88,7 +88,7 @@ poetry run phoney classify --provider fake --model fake --limit 10
 | `--model` | Model identifier passed to the provider, e.g. `qwen3:14b`. |
 | `--prompt` | Path to the prompt file. Default `prompts/prompt.txt`. |
 | `--hash` | 8-char prompt hash from `prompts/generations/`. Overrides `--prompt`. Fails immediately if the hash is not in the archive. |
-| `--limit` | Sample size, default 200. Stratified by label. |
+| `--limit` | Sample size, default 100. Stratified by label. |
 | `--all` | Run every row in the dataset. Overrides `--limit`. |
 | `--snapshot` | Force this run into `output/` even when it would otherwise be a canonical baseline. |
 | `--seed` | Sampling seed, default 42. Same seed gives the same rows. |
@@ -113,7 +113,7 @@ Two flavours:
 
 | Flavour | Filename | When |
 |---|---|---|
-| Default sample baseline | `results/<model>_<hash>.csv` | `phoney classify` (200 stratified rows) |
+| Default sample baseline | `results/<model>_<hash>.csv` | `phoney classify` (100 stratified rows) |
 | Full-dataset baseline | `results/<model>_<hash>_full.csv` | `phoney classify --all` |
 
 Both overwrite their existing file on re-run. The baseline is always the
@@ -135,7 +135,7 @@ latest run for that shape.
 ### How to produce a baseline
 
 ```bash
-# Default 200-row baseline
+# Default 100-row baseline
 poetry run phoney classify --provider ollama --model qwen3:14b
 
 # Full 40k-row baseline (takes hours)
@@ -151,7 +151,7 @@ any other change. The score is printed at the end of the run; `phoney score
 These all route to `output/` (gitignored) so the canonical `results/`
 directory stays clean:
 
-- Any `--limit` that is not 200 (e.g. quick 20-row checks)
+- Any `--limit` that is not 100 (e.g. quick 20-row checks)
 - Any run with `--snapshot` (forces output even for a default sample)
 - The `--save-prompt` sidecar (always in `output/`, even when the CSV is
   canonical)
@@ -220,16 +220,17 @@ Routing rules:
 
 | Run kind | Destination |
 |---|---|
-| Default (`--limit 200`), no `--snapshot` | `results/<model>_<hash>.csv` (overwrites) |
+| Default (`--limit 100`), no `--snapshot` | `results/<model>_<hash>.csv` (overwrites) |
 | `--all`, no `--snapshot` | `results/<model>_<hash>_full.csv` (overwrites) |
 | Any other `--limit` (e.g. 50, 1000) | `output/run_<model>_<hash>_<ts>_limit_<N>_<acc>pct.csv` |
 | `--snapshot` (any limit) | `output/run_..._<acc>pct.csv` |
 | `--save-prompt` sidecar | Always `output/run_..._prompts.txt` regardless of CSV destination |
 
-Why 200 is canonical: full runs on a local model take days. 200 is the
-working sample size used during iteration. Treating it as the reference
-shape means `phoney classify` (no flags) writes a baseline you can compare
-against, every time.
+Why 100 is canonical: full runs on a local model take days, and even
+200-row runs were too slow to iterate against. 100 is the working sample
+size that keeps a baseline cheap enough to regenerate while editing the
+prompt. Treating it as the reference shape means `phoney classify` (no
+flags) writes a baseline you can compare against, every time.
 
 Filename components:
 
@@ -244,7 +245,7 @@ Filename components:
 
 Examples:
 
-- `results/qwen3_14b_3540c00f.csv`: canonical 200-row baseline for `qwen3:14b` + prompt `3540c00f`.
+- `results/qwen3_14b_3540c00f.csv`: canonical 100-row baseline for `qwen3:14b` + prompt `3540c00f`.
 - `results/qwen3_14b_3540c00f_full.csv`: canonical full-dataset baseline.
 - `output/run_qwen3_14b_3540c00f_20260520T160731_limit_50_54pct.csv`: a 50-row exploration run at 54% accuracy.
 

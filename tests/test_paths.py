@@ -26,12 +26,12 @@ def test_result_path_combines_model_and_hash(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     "limit, all_rows, snapshot, expected",
     [
-        (200, False, False, True),    # default sample, canonical
-        (200, False, True, False),    # snapshot overrides
+        (100, False, False, True),    # default sample, canonical
+        (100, False, True, False),    # snapshot overrides
         (50, False, False, False),    # non-default limit
         (1000, False, False, False),  # non-default limit
-        (200, True, False, True),     # --all is canonical
-        (200, True, True, False),     # --all + --snapshot
+        (100, True, False, True),     # --all is canonical
+        (100, True, True, False),     # --all + --snapshot
     ],
 )
 def test_is_canonical_run(
@@ -59,7 +59,7 @@ def test_output_stem_limit() -> None:
 
 def test_output_stem_full() -> None:
     assert (
-        output_stem("qwen3:14b", "abcdef12", 200, True, "20260520T120000")
+        output_stem("qwen3:14b", "abcdef12", 100, True, "20260520T120000")
         == "run_qwen3_14b_abcdef12_20260520T120000_full"
     )
 
